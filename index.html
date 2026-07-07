@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARDEX — Secure buying and selling of high value cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030d09;
+    --surface: rgba(18,32,26,0.94);
+    --surface2: rgba(24,42,34,0.94);
+    --border: rgba(193,122,74,0.32);
+    --border-subtle: rgba(255,255,255,0.05);
+    --gold: #c17a4a;
+    --gold-dim: #6b3d1a;
+    --gold-light: #e8a874;
+    --text: #f2f2f2;
+    --text-muted: #93ab9f;
+    --green: #4ade95; --green-bg: rgba(74,222,149,0.10);
+    --radius: 12px;
+    --card-glow: 0 0 0 1px rgba(193,122,74,0.38), inset 0 1px 0 rgba(255,255,255,0.16), 0 3px 0 rgba(0,0,0,0.9), 0 10px 28px rgba(0,0,0,0.85), 0 28px 64px rgba(0,0,0,0.9), 0 0 90px rgba(74,157,110,0.16);
+  }
+  *,*::before,*::after{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background: radial-gradient(ellipse 150% 110% at 50% 32%, #1c4d34 0%, #123626 16%, #0a2318 34%, #051209 56%, #020a06 80%, #000000 100%) fixed;
+    color:var(--text); font-family:'DM Sans', sans-serif; font-size:15px; line-height:1.55; overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;} }
+  a{color:inherit;}
+  .mono{font-family:'DM Sans',sans-serif; letter-spacing:0.04em;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 28px;}
+
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(8,26,18,0.7); backdrop-filter:blur(24px) saturate(1.4);
+    border-bottom:1px solid rgba(193,122,74,0.24);
+  }
+  header .wrap{display:flex; align-items:center; justify-content:space-between; height:56px;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .logo-text{font-family:'Montserrat',sans-serif; font-weight:800; font-size:19px; letter-spacing:0.02em;
+    background:linear-gradient(135deg,#e8a874,#c17a4a 55%,#8a4a24); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1;}
+  .nav-cta{position:relative; overflow:hidden; font-family:'Montserrat',sans-serif; font-size:11px; font-weight:800; color:#1a0f08; background:linear-gradient(160deg,#c17a4a,#9c5a32);
+    padding:8px 18px; border-radius:8px; text-decoration:none; letter-spacing:0.04em; text-transform:uppercase;
+    border:1px solid rgba(232,168,116,0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 4px 12px rgba(0,0,0,0.35);
+    transition:transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; transform:translateY(0);}
+  .nav-cta::before{content:''; position:absolute; top:0; left:-65%; width:45%; height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.28), transparent); transform:skewX(-22deg);
+    transition:left 0.55s ease;}
+  .nav-cta:hover{transform:translateY(-1px); filter:brightness(1.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 6px 16px rgba(0,0,0,0.4);}
+  .nav-cta:hover::before{left:130%;}
+  .nav-cta:active{transform:translateY(1px); filter:brightness(0.95);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 6px rgba(0,0,0,0.35);}
+
+  .hero{padding:88px 0 60px;}
+
+  .hero-grid{display:grid; grid-template-columns:0.92fr 1.18fr; gap:56px; align-items:center;}
+  @media (max-width:880px){ .hero-grid{grid-template-columns:1fr; gap:44px;} }
+
+  h1{font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(2rem,4.2vw,3.1rem); line-height:1.12; letter-spacing:-0.01em;}
+  h1 em{font-style:normal; background:linear-gradient(135deg,#e8a874,#c17a4a 55%,#8a4a24); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .lead{margin-top:20px; font-size:1.05rem; color:var(--text-muted); max-width:46ch;}
+  .hero-kicker{display:inline-flex; align-items:center; gap:8px; margin-top:22px; font-family:'Montserrat',sans-serif; font-size:11.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold-light);}
+  .hero-kicker::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px rgba(74,222,149,0.7); flex-shrink:0;}
+  .share-link{display:inline-flex; align-items:center; gap:7px; margin-top:16px; background:none; border:none; padding:0;
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; transition:color 0.2s ease;}
+  .share-link svg{width:15px; height:15px; flex-shrink:0; stroke:currentColor;}
+  .share-link:hover{color:var(--gold-light);}
+  .hero-ctas{display:flex; gap:14px; margin-top:32px; flex-wrap:wrap;}
+  .btn-primary{position:relative; overflow:hidden; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; background:linear-gradient(160deg,#c17a4a,#9c5a32); color:#1a0f08;
+    padding:14px 28px; border-radius:10px; text-decoration:none; letter-spacing:0.04em; text-transform:uppercase;
+    border:1px solid rgba(232,168,116,0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 18px rgba(0,0,0,0.4);
+    display:inline-flex; align-items:center; gap:8px; transition:transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; cursor:pointer;}
+  .btn-primary::before{content:''; position:absolute; top:0; left:-65%; width:45%; height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.28), transparent); transform:skewX(-22deg);
+    transition:left 0.55s ease;}
+  .btn-primary:hover{transform:translateY(-1px); filter:brightness(1.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 22px rgba(0,0,0,0.45);}
+  .btn-primary:hover::before{left:130%;}
+  .btn-primary:active{transform:translateY(1px); filter:brightness(0.95);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 8px rgba(0,0,0,0.4);}
+
+  /* certificate card, replicando .card de CARDEX */
+  .cert{position:relative; background:linear-gradient(145deg,#1e2e26 0%,#152019 50%,#0d1712 100%);
+    border:1px solid rgba(193,122,74,0.35); border-radius:16px; padding:40px 36px; box-shadow:var(--card-glow);
+    transform:rotate(-1deg); max-width:620px; margin-left:auto;}
+  .cert-head{display:flex; justify-content:space-between; align-items:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);}
+  .cert-brand{font-family:'Montserrat',sans-serif; font-weight:800; font-size:13px; letter-spacing:0.03em; text-transform:none;
+    background:linear-gradient(135deg,#e8a874,#c17a4a 55%,#8a4a24); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .cert-card{margin-top:24px; display:flex; flex-direction:column; gap:20px; padding-bottom:22px; border-bottom:1px dashed rgba(255,255,255,0.1);}
+  .cert-top{display:flex; gap:26px; align-items:flex-start;}
+  .cert-thumb-wrap{position:relative; flex-shrink:0; perspective:800px;}
+  .cert-thumb-wrap::before{content:''; position:absolute; inset:-14px; border-radius:18px; z-index:0;
+    background:radial-gradient(circle, rgba(232,168,116,0.4), transparent 72%); filter:blur(16px);
+    animation: glowPulse 6.5s ease-in-out infinite;}
+  @keyframes glowPulse{
+    0%{opacity:0.3; transform:scale(0.9);}
+    50%{opacity:0.8; transform:scale(1.12);}
+    100%{opacity:0.3; transform:scale(0.9);}
+  }
+  .cert-thumb-wrap::after{content:''; position:absolute; inset:0; z-index:2; border-radius:10px; pointer-events:none;
+    background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.6) 48%, rgba(255,255,255,0.15) 54%, transparent 66%);
+    background-size:260% 260%; mix-blend-mode:overlay;
+    animation: shineSweep 6.5s ease-in-out infinite;}
+  @keyframes shineSweep{
+    0%{background-position:130% 20%; transform:rotateY(-15deg) rotateX(6deg) translateY(0px);}
+    50%{background-position:-30% 80%; transform:rotateY(15deg) rotateX(-6deg) translateY(-11px);}
+    100%{background-position:130% 20%; transform:rotateY(-15deg) rotateX(6deg) translateY(0px);}
+  }
+  .cert-thumb{position:relative; z-index:1; width:172px; height:236px; display:block; border-radius:10px; object-fit:cover;
+    border:1px solid rgba(193,122,74,0.55); transform-style:preserve-3d;
+    animation: floatTilt 6.5s ease-in-out infinite;}
+  @keyframes floatTilt{
+    0%{transform:rotateY(-15deg) rotateX(6deg) translateY(0px); box-shadow:-18px 26px 30px -12px rgba(0,0,0,0.65);}
+    50%{transform:rotateY(15deg) rotateX(-6deg) translateY(-11px); box-shadow:18px 38px 40px -12px rgba(0,0,0,0.5);}
+    100%{transform:rotateY(-15deg) rotateX(6deg) translateY(0px); box-shadow:-18px 26px 30px -12px rgba(0,0,0,0.65);}
+  }
+  .cert-titlecol{flex:1; min-width:120px;}
+  .cert-name{font-weight:700; font-size:1.28rem;}
+  .cert-sub{font-size:13px; color:var(--text-muted); margin-top:6px;}
+  .cert-parties-row{display:flex; justify-content:space-between; gap:20px; padding-top:16px; border-top:1px dashed rgba(255,255,255,0.08);}
+  .cert-party-label{font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); margin-bottom:3px;}
+  .cert-party-name{font-size:12.5px; font-weight:700; color:var(--text); line-height:1.2;}
+  .cert-party-loc{font-size:10.5px; color:var(--text-muted); margin-top:1px;}
+  .cert-parties-row > div:last-child{text-align:right;}
+  .cert-price{margin-top:16px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .cert-price .amount{font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.7rem; color:var(--green);
+    letter-spacing:-0.01em; text-shadow:0 0 24px rgba(61,220,132,0.28);}
+  .cert-price .tag{font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted);}
+  .cert-rows{margin-top:16px; display:flex; flex-direction:column; gap:9px;}
+  .cert-row{display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--text-muted);}
+  .cert-row span{font-family:'Montserrat',sans-serif; font-size:9.5px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold-light);}
+  .cert-row b{font-family:'Montserrat',sans-serif; font-size:12px; font-weight:700; color:var(--text);}
+  .cert-row b.scarcity{color:var(--green);}
+  .cert-row b.owner-unknown{color:rgba(255,255,255,0.38); font-style:italic; font-weight:600; letter-spacing:0.04em;}
+
+  .stamp{position:absolute; right:-14px; bottom:-18px; width:104px; height:104px;
+    display:flex; align-items:center; justify-content:center; animation: stampIn 0.7s cubic-bezier(.2,1.4,.4,1) 0.4s both;}
+  @keyframes stampIn{0%{transform:scale(2.4) rotate(-16deg); opacity:0;} 70%{transform:scale(0.92) rotate(-11deg); opacity:1;} 100%{transform:scale(1) rotate(-10deg); opacity:1;}}
+  .stamp svg{width:100%; height:100%; filter:drop-shadow(0 6px 14px rgba(0,0,0,0.5));}
+
+  .section{padding:88px 0;}
+  .section-head{max-width:640px; margin-bottom:48px;}
+  .kicker{font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold-light); margin-bottom:14px;}
+  h2{font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(1.55rem,2.8vw,2.1rem); line-height:1.2;}
+  h2 .hl{background:linear-gradient(135deg,#e8a874,#c17a4a 55%,#8a4a24); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .section-head p{margin-top:14px; color:var(--text-muted);}
+
+  .problem-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  @media (max-width:820px){ .problem-grid{grid-template-columns:1fr;} }
+  .problem-card{background:linear-gradient(145deg,#162922,#0c1712); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:28px 24px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 24px rgba(0,0,0,0.4);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;}
+  .problem-card:hover{transform:translateY(-5px);
+    border-color:rgba(193,122,74,0.5);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 rgba(0,0,0,0.3), 0 20px 40px rgba(0,0,0,0.55), 0 0 30px rgba(193,122,74,0.16);}
+  .problem-seal{position:relative; width:64px; height:64px; margin-bottom:18px; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.5)); transition:transform 0.25s ease;}
+  .problem-card:hover .problem-seal{transform:scale(1.08);}
+  .problem-seal::after{content:''; position:absolute; inset:-7px; border-radius:50%; border:1.5px solid var(--green); opacity:0; transform:scale(0.82); pointer-events:none;}
+  .problem-card:hover .problem-seal::after{animation:sealCheck 0.65s ease-out;}
+  @keyframes sealCheck{
+    0%{opacity:0.95; transform:scale(0.82);}
+    60%{opacity:0.4;}
+    100%{opacity:0; transform:scale(1.4);}
+  }
+  .problem-card h3{font-weight:700; font-size:1.05rem; margin-bottom:10px;}
+  .problem-card p{color:var(--text-muted); font-size:0.92rem;}
+
+  .flow-section{padding-top:24px;}
+
+  .flow{position:relative; display:flex; gap:14px; margin-top:8px;}
+  @media (max-width:820px){ .flow{flex-direction:column; gap:8px;} }
+
+  .flow-line{position:absolute; top:23px; left:16.6%; right:16.6%; height:2px;
+    background:linear-gradient(90deg, rgba(193,122,74,0.1), rgba(193,122,74,0.65) 15%, rgba(193,122,74,0.65) 85%, rgba(193,122,74,0.1));
+    z-index:0;}
+  .flow-chevron{position:absolute; top:23px; width:16px; height:16px; transform:translate(-50%,-50%) rotate(45deg);
+    border-top:2px solid rgba(232,168,116,0.85); border-right:2px solid rgba(232,168,116,0.85); z-index:0;}
+  @media (max-width:820px){ .flow-line, .flow-chevron{display:none;} }
+
+  .flow-step{flex:1; position:relative; z-index:1; text-align:center; padding:0 10px;}
+  @media (max-width:820px){ .flow-step{text-align:left; padding:0; display:flex; gap:16px; align-items:flex-start;} }
+
+  .flow-num{width:46px; height:46px; border-radius:50%; margin:0 auto 20px; flex-shrink:0;
+    background:linear-gradient(145deg,#1a2b24,#0e1712); border:2px solid var(--gold); color:var(--gold-light);
+    font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 16px rgba(0,0,0,0.5);
+    transition:transform 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;}
+  @media (max-width:820px){ .flow-num{margin:0;} }
+  .flow-step:hover .flow-num{transform:scale(1.12); border-color:var(--green); color:var(--text);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 20px rgba(0,0,0,0.55), 0 0 20px rgba(74,222,149,0.4);}
+
+  .flow-step h4{font-weight:700; font-size:1rem; margin-bottom:8px;}
+  .flow-step p{color:var(--text-muted); font-size:0.9rem;}
+
+  .flow-arrow-down{display:none; color:var(--gold); font-size:16px; margin:2px 0 2px 22px;}
+  @media (max-width:820px){ .flow-arrow-down{display:block;} }
+
+  .waitlist{background:linear-gradient(145deg,#132922,#081310); border:1px solid var(--border); border-radius:16px;
+    padding:52px 42px; position:relative; overflow:hidden; box-shadow:var(--card-glow);}
+  @media (max-width:640px){ .waitlist{padding:36px 22px;} }
+  .waitlist::before{content:''; position:absolute; top:-140px; right:-100px; width:380px; height:380px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(74,222,149,0.09), transparent 72%); filter:blur(8px);}
+  .waitlist-logo{position:absolute; bottom:22px; right:26px; z-index:1; font-family:'Montserrat',sans-serif; font-weight:800; font-size:19px; letter-spacing:0.05em;
+    background:linear-gradient(135deg,#e8a874,#c17a4a 55%,#8a4a24); -webkit-background-clip:text; background-clip:text; color:transparent; opacity:0.5;}
+  .waitlist-inner{position:relative; z-index:1; max-width:600px;}
+  .waitlist h2{margin-bottom:12px;}
+  .waitlist p{color:var(--text-muted); margin-bottom:28px;}
+
+  .role-toggle{display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+  .role-opt{font-size:12.5px; font-weight:600; border:1px solid rgba(255,255,255,0.14); border-radius:8px;
+    padding:9px 15px; cursor:pointer; color:var(--text-muted); transition:all 0.15s ease; user-select:none;}
+  .role-opt input{display:none;}
+  .role-opt.active{border-color:var(--gold); color:var(--gold-light); background:rgba(193,122,74,0.1);}
+
+  form{display:flex; gap:12px; flex-wrap:wrap;}
+  input[type=email]{flex:1; min-width:220px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14);
+    color:var(--text); padding:14px 16px; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.95rem;}
+  input[type=email]::placeholder{color:rgba(255,255,255,0.32);}
+  input[type=email]:focus{outline:2px solid var(--gold); outline-offset:2px; border-color:var(--gold);}
+  .form-note{margin-top:14px; font-size:12px; color:rgba(255,255,255,0.32);}
+  .form-success{display:none; margin-top:16px; font-size:13px; font-weight:600; color:var(--green);}
+  .form-success #successText{display:block;}
+  .idea-input{width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
+    color:var(--text); padding:11px 14px; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.85rem;}
+  .idea-input::placeholder{color:rgba(255,255,255,0.28);}
+  .idea-input:focus{outline:1px solid var(--gold); outline-offset:1px; border-color:var(--gold);}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <span class="logo-text">CARDEX</span>
+    </div>
+    <a href="#waitlist" class="nav-cta">Beta access</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Your <em>signed Ahri</em> deserves better than a blind sale.</h1>
+      <p class="lead">Buy, trade, or sell your most valuable cards with complete security and transparency on CARDEX. Real verification, ownership history, and zero uncertainty.</p>
+      <div class="hero-ctas">
+        <a href="#waitlist" class="btn-primary">Request private access</a>
+      </div>
+      <div class="hero-kicker">Launch · August 2026</div>
+    </div>
+
+    <div class="cert">
+      <div class="cert-head"><span>Certificate No. 48,219</span><span class="cert-brand">CARDEX</span></div>
+      <div class="cert-card">
+        <div class="cert-top">
+          <div class="cert-thumb-wrap">
+            <img class="cert-thumb" src="https://static.dotgg.gg/riftbound/cards/OGN-303s.webp" alt="Ahri, Nine-Tailed Fox V.3 Signed Showcase">
+          </div>
+          <div class="cert-titlecol">
+            <div class="cert-name">Ahri, Nine-Tailed Fox</div>
+            <div class="cert-sub">V.3 — Signed Showcase · OGN-303*</div>
+          </div>
+        </div>
+        <div class="cert-parties-row">
+          <div>
+            <div class="cert-party-label">Buyer</div>
+            <div class="cert-party-name">Javier Muñoz</div>
+            <div class="cert-party-loc">Madrid, Spain</div>
+          </div>
+          <div>
+            <div class="cert-party-label">Seller</div>
+            <div class="cert-party-name">Lukas Hoffmann</div>
+            <div class="cert-party-loc">Munich, Germany</div>
+          </div>
+        </div>
+        <div class="cert-rows">
+          <div class="cert-row"><span>Condition</span><b>Mint 100</b></div>
+          <div class="cert-row"><span>Set</span><b>Origins, first wave</b></div>
+          <div class="cert-row"><span>Scarcity</span><b class="scarcity">Super High</b></div>
+          <div class="cert-row"><span>Current owner</span><b class="owner-unknown">???</b></div>
+        </div>
+      </div>
+      <div class="cert-price"><span class="amount">€1,995</span></div>
+      <div class="stamp">
+        <svg viewBox="0 0 100 100" role="img" aria-label="CARDEX verified sale seal">
+          <defs>
+            <path id="sealArcTop" d="M 13,50 A 37,37 0 0,1 87,50"/>
+            <path id="sealArcBot" d="M 13,50 A 37,37 0 0,0 87,50"/>
+            <radialGradient id="sealFill" cx="50%" cy="40%" r="62%">
+              <stop offset="0%" stop-color="#3ddc84" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#3ddc84" stop-opacity="0.03"/>
+            </radialGradient>
+          </defs>
+          <circle cx="50" cy="50" r="47" fill="url(#sealFill)"/>
+          <circle cx="50" cy="50" r="47" fill="none" stroke="#3ddc84" stroke-width="2.4"/>
+          <circle cx="50" cy="50" r="41.5" fill="none" stroke="rgba(61,220,132,0.45)" stroke-width="0.8"/>
+          <circle cx="50" cy="50" r="26" fill="none" stroke="rgba(61,220,132,0.5)" stroke-width="0.8"/>
+          <text font-family="Montserrat, sans-serif" font-weight="800" font-size="11" letter-spacing="0.8" fill="#3ddc84">
+            <textPath href="#sealArcTop" startOffset="50%" text-anchor="middle">CARDEX</textPath>
+          </text>
+          <text font-family="DM Sans, sans-serif" font-weight="700" font-size="5.4" letter-spacing="2" fill="rgba(61,220,132,0.9)">
+            <textPath href="#sealArcBot" startOffset="50%" text-anchor="middle">VERIFIED SALE</textPath>
+          </text>
+          <path d="M 41,50.5 l 5.5,5.5 l 11.5,-12.5" fill="none" stroke="#3ddc84" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="problema">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Why <span class="hl">CARDEX</span>?</h2>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-seal">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <radialGradient id="sealGold1" cx="50%" cy="38%" r="65%">
+                <stop offset="0%" stop-color="#4ade95" stop-opacity="0.20"/>
+                <stop offset="100%" stop-color="#4ade95" stop-opacity="0.02"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="url(#sealGold1)"/>
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#4ade95" stroke-width="2.2"/>
+            <circle cx="50" cy="50" r="39" fill="none" stroke="rgba(74,222,149,0.4)" stroke-width="0.8"/>
+            <path d="M50 26l17.5 7v12c0 13-7.5 21-17.5 26-10-5-17.5-13-17.5-26v-12z" fill="none" stroke="#4ade95" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M41.5 51l6 6.5 12-13" fill="none" stroke="#4ade95" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>The exact piece, verified</h3>
+        <p>On CARDEX you don't buy "a card similar to the photo." We verify the exact copy you'll receive, with our own photography and video, before it's ever listed.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-seal">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <radialGradient id="sealGold2" cx="50%" cy="38%" r="65%">
+                <stop offset="0%" stop-color="#4ade95" stop-opacity="0.20"/>
+                <stop offset="100%" stop-color="#4ade95" stop-opacity="0.02"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="url(#sealGold2)"/>
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#4ade95" stroke-width="2.2"/>
+            <circle cx="50" cy="50" r="39" fill="none" stroke="rgba(74,222,149,0.4)" stroke-width="0.8"/>
+            <circle cx="46" cy="39" r="9" fill="none" stroke="#4ade95" stroke-width="2.4"/>
+            <path d="M26 68c0-12 9-19 20-19s20 7 20 19" fill="none" stroke="#4ade95" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="70" cy="66" r="11" fill="#0c1712" stroke="#4ade95" stroke-width="2"/>
+            <path d="M64.5 66l3.7 3.7 7.3-7.3" fill="none" stroke="#4ade95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>No more blind negotiating</h3>
+        <p>No Discord groups, no private messages with strangers, no taking a train just to confirm the card is real before you pay. On CARDEX we verify the piece, you just close the deal.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-seal">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <radialGradient id="sealGold3" cx="50%" cy="38%" r="65%">
+                <stop offset="0%" stop-color="#4ade95" stop-opacity="0.20"/>
+                <stop offset="100%" stop-color="#4ade95" stop-opacity="0.02"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="url(#sealGold3)"/>
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#4ade95" stroke-width="2.2"/>
+            <circle cx="50" cy="50" r="39" fill="none" stroke="rgba(74,222,149,0.4)" stroke-width="0.8"/>
+            <path d="M38 32h24l13 10-25 33-25-33z" fill="none" stroke="#4ade95" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M38 32l-13 10M62 32l13 10M25 42h50M38 32l12 33M62 32l-12 33" fill="none" stroke="#4ade95" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Exclusive pieces only</h3>
+        <p>CARDEX isn't a marketplace for everything. It's the place dedicated to Showcase, Overnumbered, and limited print sealed product, each edition with its own listing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section flow-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>3 simple steps to complete your transaction.</h2>
+    </div>
+    <div class="flow">
+      <div class="flow-line"></div>
+      <div class="flow-chevron" style="left:33.33%;"></div>
+      <div class="flow-chevron" style="left:66.66%;"></div>
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <h4>Verification</h4>
+        <p>On CARDEX we inspect the piece and document its authenticity and condition with real photography and video.</p>
+      </div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <h4>Listing</h4>
+        <p>We publish the verified listing, with its price and market history, ready for sale.</p>
+      </div>
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <h4>Secure sale</h4>
+        <p>Payment is released to the seller only once the buyer confirms receipt of the piece.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="waitlist">
+  <div class="wrap">
+    <div class="waitlist">
+      <div class="waitlist-inner">
+        <h2>Reserve your spot in the beta</h2>
+        <p>Access to the beta phase will be limited and by invitation. Join the waitlist and be among the first to buy and sell with full verification and total transparency.</p>
+        <div class="role-toggle" role="group" aria-label="Your profile">
+          <label class="role-opt active" data-role="vendedor"><input type="radio" name="role" value="vendedor" checked> I sell cards</label>
+          <label class="role-opt" data-role="comprador"><input type="radio" name="role" value="comprador"> I buy cards</label>
+          <label class="role-opt" data-role="ambos"><input type="radio" name="role" value="ambos"> Both</label>
+        </div>
+        <form id="waitlistForm" action="https://formspree.io/f/xjgqdbrg" method="POST">
+          <input type="email" name="email" placeholder="you@email.com" required aria-label="Email address">
+          <input type="hidden" name="role" id="roleInput" value="vendedor">
+          <button type="submit" class="btn-primary">Request access</button>
+          <input type="text" name="sugerencia" class="idea-input" placeholder="Is there anything specific you'd like to see in CARDEX? (optional)">
+        </form>
+        <div class="form-note">We'll notify you if you've been selected to join the beta.</div>
+        <div class="form-success" id="formSuccess">
+          <span id="successText">✓ Request received. We'll let you know when your access opens.</span>
+          <button type="button" id="shareBtn" class="share-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.7M8.6 13.4l6.8 3.7"/></svg>
+            <span class="share-label">Know a collector who'd love this? Tell a friend</span>
+          </button>
+        </div>
+      </div>
+      <div class="waitlist-logo">CARDEX</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const roleOpts = document.querySelectorAll('.role-opt');
+  const roleInput = document.getElementById('roleInput');
+  roleOpts.forEach(opt=>{
+    opt.addEventListener('click', ()=>{
+      roleOpts.forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      roleInput.value = opt.dataset.role;
+    });
+  });
+  const form = document.getElementById('waitlistForm');
+  const success = document.getElementById('formSuccess');
+  const successText = document.getElementById('successText');
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    if(form.action.includes('TU_ID_DE_FORMSPREE')){
+      successText.textContent = '⚠ The form still needs to be connected to Formspree (see setup instructions).';
+      successText.style.color = '#e8a874';
+      success.style.display = 'block';
+      return;
+    }
+    try{
+      const res = await fetch(form.action, {
+        method:'POST',
+        body: new FormData(form),
+        headers:{'Accept':'application/json'}
+      });
+      if(res.ok){
+        successText.textContent = "✓ Request received. We'll let you know when your access opens.";
+        successText.style.color = 'var(--green)';
+        success.style.display = 'block';
+        form.reset();
+      } else {
+        successText.textContent = '⚠ Something went wrong. Please try again in a moment.';
+        successText.style.color = '#e8a874';
+        success.style.display = 'block';
+      }
+    } catch(err){
+      successText.textContent = '⚠ Something went wrong. Please try again in a moment.';
+      successText.style.color = '#e8a874';
+      success.style.display = 'block';
+    }
+  });
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn){
+    shareBtn.addEventListener('click', async () => {
+      const shareData = {
+        title: 'CARDEX',
+        text: "Check out CARDEX, a marketplace for verified premium TCG cards.",
+        url: window.location.href
+      };
+      const label = shareBtn.querySelector('.share-label');
+      const original = label.textContent;
+      if(navigator.share){
+        try{ await navigator.share(shareData); }catch(e){}
+      } else {
+        try{
+          await navigator.clipboard.writeText(shareData.url);
+          label.textContent = 'Link copied!';
+          setTimeout(()=>{ label.textContent = original; }, 2200);
+        }catch(e){}
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
