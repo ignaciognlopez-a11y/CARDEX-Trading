@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <title>Cardex — Watchlist</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Montserrat:wght@800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #1c1c1c;
+      --surface2: #242424;
+      --border: #7a5f28;
+      --gold: #b8912e;
+      --gold-dim: #6b5218;
+      --orange: #b8912e;
+      --text: #f2f2f2;
+      --text-muted: #9a9a9a;
+      --green: #3ddc84;
+      --green-bg: rgba(61,220,132,0.10);
+      --red: #ff5a5a;
+      --red-bg: rgba(255,90,90,0.10);
+      --radius: 10px;
+      --card-glow: 0 0 0 1px rgba(212,168,58,0.38), inset 0 1px 0 rgba(255,255,255,0.16), 0 3px 0 rgba(0,0,0,0.9), 0 10px 28px rgba(0,0,0,0.85), 0 28px 64px rgba(0,0,0,0.9), 0 0 90px rgba(212,168,58,0.18);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: radial-gradient(ellipse 140% 100% at 50% 35%, #3a2e14 0%, #241c0c 18%, #150f07 38%, #0a0703 62%, #000000 100%) fixed; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; padding-bottom: 60px; overflow-x: hidden; }
+
+    /* ── PAGE TRANSITIONS ── */
+    @keyframes slide-in-right  { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slide-out-right { from { opacity: 1; transform: translateX(0); }   to { opacity: 0; transform: translateX(48px); } }
+    main { animation: slide-in-right 0.3s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+    main.leaving { animation: slide-out-right 0.22s cubic-bezier(0.55,0,1,0.45) both; }
+
+    /* ── HEADER ── */
+    header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 14px; }
+    .logo-text { font-family:'Montserrat',sans-serif; font-weight:800; font-size:22px; letter-spacing:0.02em; background:linear-gradient(135deg,#e8c766,#b8912e 55%,#8a6d1a); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1; }
+    nav { display: flex; gap: 4px; margin-left: 24px; }
+    .nav-link { font-size: 13px; font-weight: 500; color: var(--text-muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; transition: background 0.15s, color 0.15s; }
+    .nav-link:hover { background: var(--surface2); color: var(--text); }
+    .nav-link.active { background: var(--surface2); color: var(--text); }
+    .updated { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+
+    main { padding: 22px 28px; padding-top: calc(22px + 57px); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 12px; text-align: center; }
+    .empty-icon { font-size: 40px; opacity: 0.3; }
+    .empty-title { font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 700; color: var(--text-muted); }
+    .empty-sub { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ── SECTION ── */
+    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .section-header h2 { font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+    .section-count { font-size: 11px; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 20px; }
+    .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── GRID ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      column-gap: 2vw;
+      row-gap: 10px;
+      padding: 0 2vw;
+    }
+
+    /* ── WATCHLIST CARD ── */
+    .wl-card {
+      background: linear-gradient(145deg,#262626 0%,#1a1a1a 50%,#0f0f0f 100%);
+      border: 1px solid rgba(184,145,46,0.35);
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.25s, box-shadow 0.3s;
+      position: relative;
+      box-shadow: var(--card-glow);
+    }
+    .wl-card:hover { border-color: rgba(184,145,46,0.65); }
+    .wl-card::after { content: ''; position: absolute; inset: -1px; border-radius: calc(var(--radius) + 1px); pointer-events: none; z-index: 10; transition: box-shadow 0.35s; }
+    .wl-card:hover::after { box-shadow: 0 0 28px 4px rgba(184,145,46,0.35), 0 0 60px 8px rgba(140,100,30,0.08), inset 0 0 16px rgba(184,145,46,0.16); }
+
+    .card-cover { width: 100%; aspect-ratio: 5/7; overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; background: #050505; position: relative; flex-shrink: 0; }
+    .card-cover img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .card-gloss { position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 5; transition: opacity 0.3s; }
+
+    .card-body { padding: 7px 8px 8px; display: flex; flex-direction: column; gap: 3px; }
+    .card-name { font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 700; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+    .card-badge-row { display: flex; gap: 3px; flex-wrap: wrap; }
+
+    .badge { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 7px; border-radius: 4px; }
+    .badge-origins      { background: rgba(80,120,255,0.9); color: #fff; }
+    .badge-unleashed    { background: rgba(220,70,70,0.9);  color: #fff; }
+    .badge-spiritforged { background: rgba(50,180,100,0.9); color: #fff; }
+    .badge-proving      { background: rgba(212,166,53,0.9); color: #000; }
+    .badge-sealed-tag   { background: rgba(80,200,255,0.9); color: #000; }
+
+    .price-pill { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 800; color: #d9b04a; letter-spacing: -0.2px; line-height: 1.15; display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .card-price-block { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+    .card-price-row { display: flex; align-items: baseline; gap: 5px; }
+    .card-price-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; min-width: 0; flex-shrink: 0; }
+    .card-price-buy { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; color: var(--text); }
+    .card-var-inline { font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
+
+    .var-compact { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+    .var-compact-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 500; }
+
+    .var-table { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+    .var-row { display: flex; align-items: center; justify-content: space-between; }
+    .var-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; }
+    .var-val { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 3px; }
+    .var-val.pos { color: var(--green); }
+    .var-val.neg { color: var(--red); }
+    .var-val.neu { color: var(--text-muted); }
+    .var-arrow { font-size: 9px; }
+    .cv-pos { color: var(--green); }
+    .cv-neg { color: var(--red); }
+    .cv-neu { color: var(--text-muted); }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(12px); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; animation: overlay-fade-in 0.2s ease both; }
+    @keyframes overlay-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .modal { background: linear-gradient(160deg,#1a1a1a 0%,#0a0a0a 50%,#000000 100%); border: 1px solid rgba(184,145,46,0.29); border-radius: 18px; width: 440px; max-width: 95vw; max-height: 92vh; overflow-y: auto; overflow-x: hidden; position: relative; box-shadow: 0 36px 90px rgba(0,0,0,0.98), 0 0 0 1px rgba(184,145,46,0.16), 0 0 80px rgba(184,145,46,0.16); animation: modal-pop-in 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
+    @keyframes modal-pop-in { from { opacity: 0; transform: scale(0.86) translateY(28px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .modal-close-x { position: fixed; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 50%; background: rgba(10,10,10,0.9); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; color: var(--text-muted); font-size: 13px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: color 0.15s, border-color 0.15s; }
+    .modal-close-x:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+    .modal-stage { display: flex; justify-content: center; align-items: center; padding: 32px 20px 20px; perspective: 900px; background: radial-gradient(ellipse at 50% 60%, rgba(216,180,100,0.11) 0%, transparent 70%); cursor: crosshair; flex-shrink: 0; }
+    .modal-card-3d { position: relative; width: 190px; border-radius: 11px; overflow: hidden; transform-style: preserve-3d; box-shadow: 0 24px 60px rgba(0,0,0,0.9), 0 8px 20px rgba(0,0,0,0.6), 0 0 40px rgba(216,180,100,0.27), 0 0 0 1px rgba(255,255,255,0.08); transition: box-shadow 0.3s; }
+    .modal-card-3d:hover { box-shadow: 0 28px 70px rgba(0,0,0,0.9), 0 10px 24px rgba(0,0,0,0.6), 0 0 55px rgba(216,180,100,0.42), 0 0 0 1px rgba(255,255,255,0.12); }
+    #modal-img { width: 100%; height: auto; display: block; }
+    .modal-card-gloss { position: absolute; inset: 0; opacity: 0; pointer-events: none; border-radius: 11px; transition: opacity 0.2s; }
+    .modal-card-shine { position: absolute; inset: 0; pointer-events: none; border-radius: 11px; background: linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 55%,rgba(216,180,100,0.09) 100%); mix-blend-mode: screen; }
+
+    .modal-body { padding: 4px 22px 24px; }
+    .modal-badges { display: flex; gap: 5px; margin-bottom: 6px; }
+    .modal-name { font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.25; margin-bottom: 14px; }
+    .modal-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: rgba(184,145,46,0.19); border: 1px solid rgba(184,145,46,0.24); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .modal-stat { display: flex; flex-direction: column; gap: 3px; padding: 12px 10px; background: rgba(10,10,10,0.85); }
+    .modal-stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; }
+    .modal-stat-value { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: -0.4px; }
+    .modal-stat-value.pos { color: var(--green); }
+    .modal-stat-value.neg { color: var(--red); }
+    .modal-stat-value.neu { color: var(--text-muted); }
+
+    .modal-chart-section { margin-bottom: 16px; }
+    .modal-spark-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 8px; }
+    .chart-wrap { position: relative; width: 100%; height: 88px; }
+    #modal-spark { width: 100%; height: 88px; display: block; cursor: crosshair; border-radius: 6px; }
+    .chart-tip { display: none; position: absolute; top: 6px; background: rgba(18,18,18,0.95); border: 1px solid rgba(184,145,46,0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--text); pointer-events: none; white-space: nowrap; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+    .modal-spark-empty { width: 100%; height: 88px; border: 1px dashed rgba(184,145,46,0.24); border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 0; }
+    .modal-spark-empty span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .sales-section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .sales-section-label::after { content: ''; flex: 1; height: 1px; background: rgba(184,145,46,0.24); }
+    .sales-empty { border: 1px dashed rgba(184,145,46,0.24); border-radius: 6px; padding: 16px; text-align: center; margin-bottom: 16px; }
+    .sales-empty span { font-size: 11px; color: var(--text-muted); }
+    .sales-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .sale-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(10,10,10,0.85); border: 1px solid rgba(184,145,46,0.19); border-radius: 6px; }
+    .sale-platform { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; }
+    .sale-platform.ebay { background: rgba(230,130,0,0.2); color: #e68200; }
+    .sale-platform.tcg  { background: rgba(80,160,255,0.2); color: #50a0ff; }
+    .sale-date  { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+    .sale-price { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-left: auto; white-space: nowrap; }
+    .sale-link  { font-size: 11px; color: #d9b04a; text-decoration: none; flex-shrink: 0; }
+    .sale-link:hover { text-decoration: underline; }
+
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-cardmarket { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg,#b8912e,#8a6d1a); color: #000; font-weight: 800; font-size: 13px; padding: 11px 16px; border-radius: 9px; text-decoration: none; transition: opacity 0.15s, box-shadow 0.15s; box-shadow: 0 4px 14px rgba(216,180,100,0.45); }
+    .btn-cardmarket:hover { opacity: 0.9; box-shadow: 0 6px 20px rgba(216,180,100,0.68); }
+    .btn-close { background: rgba(10,10,10,0.85); border: 1px solid rgba(184,145,46,0.24); color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 11px 18px; border-radius: 9px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .btn-close:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+
+    .filter-group { display:flex; gap:4px; margin-left:auto; order:3; }
+    .filter-btn { font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+    .filter-btn:hover { color:var(--text); border-color:var(--text-muted); }
+    .filter-btn.active { background:#b8912e; border-color:#b8912e; color:#fff; }
+
+    /* ── VISTA TOGGLE ── */
+    .view-toggle { display: flex; gap: 2px; }
+    .view-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 13px; transition: all 0.15s; }
+    .view-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .view-btn.active { background: var(--surface2); color: var(--text); border-color: var(--text-muted); }
+
+    /* ── LIST VIEW ── */
+    .list-view { display: flex; flex-direction: column; gap: 4px; }
+    .list-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .list-row:hover { border-color: var(--gold); background: var(--surface2); box-shadow: 0 0 16px rgba(184,145,46,0.22); }
+    .list-row.dragging { opacity: 0.4; }
+    .list-row.drag-over { border-color: #b8912e; }
+    .list-rank { font-size: 11px; font-weight: 700; color: var(--text-muted); width: 20px; text-align: center; flex-shrink: 0; }
+    .list-img { width: 36px; height: 36px; border-radius: 5px; object-fit: contain; object-position: center; background:#050505; flex-shrink: 0; }
+    .list-name { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-set { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .list-sales { font-size: 10px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
+    .list-price { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); flex-shrink: 0; white-space: nowrap; letter-spacing: -0.3px; }
+    .list-var { font-size: 11px; font-weight: 700; flex-shrink: 0; white-space: nowrap; min-width: 56px; text-align: right; }
+    .list-var.pos { color: var(--green); }
+    .list-var.neg { color: var(--red); }
+    .list-var.neu { color: var(--text-muted); }
+    .list-buy { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 5px; background: var(--green); color: #000; flex-shrink: 0; text-decoration: none; }
+    .list-buy:hover { opacity: 0.85; }
+
+    /* Drag & drop */
+    .wl-card { transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s; }
+    .wl-card.dragging { opacity: 0.4; transform: scale(0.97); box-shadow: none !important; }
+    .wl-card.drag-over { border-color: #b8912e; box-shadow: 0 0 0 2px rgba(184,145,46,0.3); }
+    .drag-mode .wl-card { cursor: grab; }
+    .drag-mode .wl-card:active { cursor: grabbing; }
+    .drag-mode .list-row { cursor: grab; }
+    .drag-mode .list-row:active { cursor: grabbing; }
+    .drag-hint { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; margin-left: 8px; opacity: 0; transition: opacity 0.2s; }
+    .drag-hint.visible { opacity: 1; }
+    @media (max-width: 1300px) { .card-grid { grid-template-columns: repeat(6,1fr); column-gap: 2.5vw; padding: 0 2.5vw; } }
+    @media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(4,1fr); column-gap: 3vw; padding: 0 3vw; } }
+    @media (max-width: 700px)  { .card-grid { grid-template-columns: repeat(3,1fr); column-gap: 2.5vw; padding: 0 2.5vw; } }
+    @media (max-width: 460px)  { .card-grid { grid-template-columns: repeat(2,1fr); column-gap: 2.5vw; padding: 0 2.5vw; } }
+
+    .section-header.section-header-spaced { margin-top: 34px; }
+
+    /* ── PESTAÑAS DE WATCHLISTS ── */
+    .wl-tabs-bar { position: fixed; top: 57px; left: 0; right: 0; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 10px 28px; background: rgba(0,0,0,0.92); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+    .wl-tabs-bar::-webkit-scrollbar { display: none; }
+    .wl-tab { flex-shrink: 0; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+    .wl-tab:hover { color: var(--text); border-color: var(--gold); }
+    .wl-tab.active { background: var(--gold); border-color: var(--gold); color: #000; }
+    .wl-tab-new { flex-shrink: 0; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 7px; border: 1px dashed rgba(184,145,46,0.5); background: transparent; color: var(--gold); cursor: pointer; white-space: nowrap; margin-left: 4px; }
+    .wl-tab-new:hover { background: rgba(184,145,46,0.12); }
+    main { padding-top: calc(22px + 57px + 44px) !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo-text">CARDEX</span>
+  <span class="page-title" style="font-size:13px;font-weight:700;color:var(--text-muted);margin-left:4px;">Watchlist</span>
+  <span class="updated" id="updated-label"></span>
+</header>
+
+<div class="wl-tabs-bar" id="wl-tabs-bar"></div>
+<main id="main-content">
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close-x" id="modal-close-x">✕</button>
+    <div class="modal-stage" id="modal-stage">
+      <div class="modal-card-3d" id="modal-card-3d">
+        <img id="modal-img" src="" alt=""/>
+        <div class="modal-card-gloss" id="modal-card-gloss"></div>
+        <div class="modal-card-shine"></div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges" id="modal-badges"></div>
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-stats">
+        <div class="modal-stat">
+          <span class="modal-stat-label">Current</span>
+          <span class="modal-stat-value" id="modal-current">—</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">vs last check</span>
+          <span class="modal-stat-value" id="modal-var-last">—</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">7-day</span>
+          <span class="modal-stat-value" id="modal-var-7">—</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">30-day</span>
+          <span class="modal-stat-value" id="modal-var-30">—</span>
+        </div>
+      </div>
+      <div class="modal-chart-section">
+        <span class="modal-spark-label">Price history</span>
+        <div class="chart-wrap" id="chart-wrap" style="display:none">
+          <canvas id="modal-spark"></canvas>
+          <div class="chart-tip" id="chart-tip"></div>
+        </div>
+        <div class="modal-spark-empty" id="modal-spark-empty"><span>No data yet</span></div>
+      </div>
+      <div class="sales-section-label">US Market — Recent Sales</div>
+      <div id="modal-sales-content"></div>
+      <div class="modal-actions">
+        <a class="btn-cardmarket" id="modal-cm-link" href="#" target="_blank" rel="noopener">↗ Cardmarket</a>
+        <button class="btn-edit" id="modal-edit-btn" style="flex:0 0 auto;padding:9px 16px;border-radius:8px;background:transparent;color:var(--gold);border:1px solid rgba(184,145,46,0.4);font-size:12px;font-weight:700;cursor:pointer;">Mover / editar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="cardex-shared.js"></script>
+<script>
+(function () {
+  let currentModalItem = null;
+  const fmt    = n => (n === null || n === undefined) ? '—' : n.toLocaleString('de-DE', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' €';
+  const fmtUSD = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmtPct = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+
+  const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='160'%3E%3Crect width='120' height='160' fill='%23111118'/%3E%3Ctext x='60' y='84' text-anchor='middle' fill='%235a5a70' font-size='11' font-family='sans-serif'%3ENo image%3C/text%3E%3C/svg%3E";
+
+  function badgeClass(set) {
+    return {Origins:'badge-origins',Unleashed:'badge-unleashed',Spiritforged:'badge-spiritforged','Proving Grounds':'badge-proving'}[set] || '';
+  }
+  function cmUrl(item) {
+    if (item.cardmarketUrl) return item.cardmarketUrl;
+    return 'https://www.cardmarket.com/en/Riftbound/Products/Search?searchString=' + encodeURIComponent(item.name);
+  }
+
+  function varFromHistory(history, daysAgo) {
+    if (!history || history.length < 2) return null;
+    const now = new Date(history[history.length-1].date + 'T12:00:00');
+    const currentPrice = history[history.length-1].price;
+    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - daysAgo);
+    const candidates = history.slice(0,-1).filter(h => new Date(h.date+'T12:00:00') <= cutoff);
+    if (!candidates.length) return null;
+    const ref = candidates[candidates.length-1].price;
+    return { abs: currentPrice - ref, pct: (currentPrice - ref) / ref * 100 };
+  }
+  function varLastCheck(history) {
+    if (!history || history.length < 2) return null;
+    const cur = history[history.length-1].price;
+    const prev = history[history.length-2].price;
+    return { abs: cur - prev, pct: (cur - prev) / prev * 100 };
+  }
+  function varLabel(v) {
+    if (!v) return { text: '—', cls: 'neu' };
+    return { text: fmtPct(v.pct), cls: v.pct >= 0 ? 'pos' : 'neg' };
+  }
+
+  function drawSpark(id, history, h, interactive) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth * dpr, H = (h || canvas.offsetHeight) * dpr;
+    canvas.width = W; canvas.height = H;
+    const prices = history.map(x => x.price), dates = history.map(x => x.date);
+    const mn = Math.min(...prices), mx = Math.max(...prices), rng = mx-mn || 1;
+    const pad = 6*dpr, xp = i => pad + (i/(prices.length-1))*(W-pad*2), yp = v => H-pad-((v-mn)/rng)*(H-pad*2);
+    const up = prices[prices.length-1] >= prices[0], col = up ? '#3ddc84' : '#ff5a5a';
+
+    function render(hlIdx) {
+      ctx.clearRect(0,0,W,H);
+      const grad = ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0, up ? 'rgba(61,220,132,0.25)' : 'rgba(255,90,90,0.25)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); prices.forEach((p,i)=>i===0?ctx.moveTo(xp(i),yp(p)):ctx.lineTo(xp(i),yp(p)));
+      ctx.lineTo(xp(prices.length-1),H); ctx.lineTo(xp(0),H); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+      ctx.beginPath(); prices.forEach((p,i)=>i===0?ctx.moveTo(xp(i),yp(p)):ctx.lineTo(xp(i),yp(p)));
+      ctx.strokeStyle=col; ctx.lineWidth=2*dpr; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(xp(prices.length-1),yp(prices[prices.length-1]),3*dpr,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+
+      if (hlIdx !== undefined) {
+        const hx=xp(hlIdx), hy=yp(prices[hlIdx]);
+        ctx.save(); ctx.beginPath(); ctx.moveTo(hx,0); ctx.lineTo(hx,H);
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1*dpr; ctx.setLineDash([4*dpr,4*dpr]); ctx.stroke(); ctx.restore();
+        ctx.beginPath(); ctx.arc(hx,hy,6*dpr,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(hx,hy,3.5*dpr,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(hx,hy,2.2*dpr,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+      }
+    }
+    render();
+
+    if (interactive && prices.length > 1) {
+      const tip = document.getElementById('chart-tip');
+      if (canvas._mv) canvas.removeEventListener('mousemove', canvas._mv);
+      if (canvas._ml) canvas.removeEventListener('mouseleave', canvas._ml);
+      canvas._mv = e => {
+        const r = canvas.getBoundingClientRect(), rx = (e.clientX-r.left)*dpr;
+        let best=0, bd=Infinity; prices.forEach((_,i)=>{ const d=Math.abs(xp(i)-rx); if(d<bd){bd=d;best=i;} });
+        render(best);
+        if (tip) {
+          const pf = prices[best].toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+          const df = new Date(dates[best]+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+          tip.textContent = df+'  ·  '+pf;
+          tip.style.display = 'block';
+          const relX = e.clientX-r.left, cw = r.width;
+          if (relX > cw/2) { tip.style.right=(cw-relX+10)+'px'; tip.style.left='auto'; }
+          else { tip.style.left=(relX+10)+'px'; tip.style.right='auto'; }
+        }
+      };
+      canvas._ml = () => { render(); if (tip) tip.style.display='none'; };
+      canvas.addEventListener('mousemove', canvas._mv);
+      canvas.addEventListener('mouseleave', canvas._ml);
+    }
+  }
+
+  function buildSalesHTML(sales) {
+    if (!sales || !sales.length) {
+      return `<div class="sales-empty"><span>No recent sales recorded yet</span></div>`;
+    }
+    const rows = sales.map(s => `
+      <div class="sale-row">
+        <span class="sale-platform ${s.platform.toLowerCase()}">${s.platform}</span>
+        <span class="sale-date">${s.date}</span>
+        <span class="sale-price">${s.currency==='USD' ? fmtUSD(s.price) : fmt(s.price)}</span>
+        ${s.url ? `<a class="sale-link" href="${s.url}" target="_blank" rel="noopener">↗</a>` : ''}
+      </div>`).join('');
+    return `<div class="sales-list">${rows}</div>`;
+  }
+
+  function openModal(item) {
+    currentModalItem = item;
+    const img = document.getElementById('modal-img');
+    img.src = item.image || FALLBACK_IMG;
+    img.onerror = () => { img.src = FALLBACK_IMG; };
+    document.getElementById('modal-name').textContent = item.name;
+    document.getElementById('modal-badges').innerHTML =
+      (item.set ? `<span class="badge ${badgeClass(item.set)}">${item.set}</span>` : '') +
+      (item.condition==='Sealed' ? `<span class="badge badge-sealed-tag">Sealed</span>` : '');
+    document.getElementById('modal-current').textContent = fmt(item.currentPrice);
+
+    const vLast = varLastCheck(item.priceHistory);
+    const v7    = varFromHistory(item.priceHistory, 7);
+    const v30   = varFromHistory(item.priceHistory, 30);
+    ['modal-var-last','modal-var-7','modal-var-30'].forEach((id,i) => {
+      const v = [vLast,v7,v30][i];
+      const {text,cls} = varLabel(v);
+      const el = document.getElementById(id);
+      el.textContent = text; el.className = 'modal-stat-value ' + cls;
+    });
+
+    const cw = document.getElementById('chart-wrap');
+    const se = document.getElementById('modal-spark-empty');
+    if (item.priceHistory?.length > 1) {
+      cw.style.display = 'block'; se.style.display = 'none';
+      requestAnimationFrame(() => drawSpark('modal-spark', item.priceHistory, 88, true));
+    } else { cw.style.display='none'; se.style.display='flex'; }
+
+    document.getElementById('modal-sales-content').innerHTML = buildSalesHTML(item.usSales);
+    document.getElementById('modal-cm-link').href = cmUrl(item);
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    initModalTilt();
+  }
+
+  function initModalTilt() {
+    const stage = document.getElementById('modal-stage');
+    const card3d = document.getElementById('modal-card-3d');
+    const gloss = document.getElementById('modal-card-gloss');
+    if (!stage || !card3d) return;
+    let tx=0, ty=0, tgtX=0, tgtY=0, gx=50, gy=50, hov=false;
+    function onMove(e) {
+      hov = true;
+      const r = card3d.getBoundingClientRect();
+      const mx = (e.clientX-r.left-r.width/2)/(r.width/2);
+      const my = (e.clientY-r.top-r.height/2)/(r.height/2);
+      tgtX = -my*14; tgtY = mx*14;
+      gx = ((e.clientX-r.left)/r.width)*100;
+      gy = ((e.clientY-r.top)/r.height)*100;
+      if (gloss) gloss.style.opacity = '1';
+    }
+    function onLeave() { hov=false; tgtX=0; tgtY=0; if (gloss) gloss.style.opacity='0'; }
+    stage.addEventListener('mousemove', onMove);
+    stage.addEventListener('mouseleave', onLeave);
+    let raf;
+    function tick() {
+      tx += (tgtX-tx)*0.1; ty += (tgtY-ty)*0.1;
+      if (Math.abs(tx)>0.01 || Math.abs(ty)>0.01 || hov) {
+        card3d.style.transform = `perspective(900px) rotateX(${tx.toFixed(2)}deg) rotateY(${ty.toFixed(2)}deg)`;
+      }
+      if (gloss && hov) {
+        gloss.style.background = `radial-gradient(circle at ${gx.toFixed(0)}% ${gy.toFixed(0)}%,rgba(255,255,200,0.28) 0%,rgba(255,255,255,0.07) 40%,transparent 65%)`;
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    const ov = document.getElementById('modal-overlay');
+    ov._stopTilt = () => {
+      stage.removeEventListener('mousemove', onMove);
+      stage.removeEventListener('mouseleave', onLeave);
+      cancelAnimationFrame(raf);
+      if (card3d) card3d.style.transform = '';
+    };
+  }
+
+  function closeModal() {
+    const ov = document.getElementById('modal-overlay');
+    ov.classList.remove('open');
+    document.body.style.overflow = '';
+    if (ov._stopTilt) { ov._stopTilt(); ov._stopTilt = null; }
+  }
+  document.getElementById('modal-close-x').addEventListener('click', closeModal);
+  document.getElementById('modal-edit-btn').addEventListener('click', () => { if (currentModalItem) window.CardexOpenMove(currentModalItem); });
+  document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id==='modal-overlay') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+  function buildCard(item) {
+    const vLast = varLastCheck(item.priceHistory);
+    const v7    = varFromHistory(item.priceHistory, 7);
+    const v30   = varFromHistory(item.priceHistory, 30);
+
+    function varHtml(v) {
+      if (!v) return `<span class="var-val neu">—</span>`;
+      const pos = v.pct >= 0;
+      return `<span class="var-val ${pos?'pos':'neg'}"><span class="var-arrow">${pos?'▲':'▼'}</span> ${fmtPct(v.pct)}</span>`;
+    }
+
+    const hasBuy = item.buyPrice > 0;
+    const pct = hasBuy ? (item.currentPrice - item.buyPrice) / item.buyPrice * 100 : null;
+    const isPos = pct !== null && pct >= 0;
+    const varCls = pct === null ? 'cv-neu' : isPos ? 'cv-pos' : 'cv-neg';
+    const varArrow = pct === null ? '' : isPos ? '▲' : '▼';
+    const varTxt = pct !== null ? ((pct >= 0 ? '+' : '') + pct.toFixed(1) + '%') : '';
+
+    const imgSrc = item.image || FALLBACK_IMG;
+
+    return `
+    <div class="wl-card" data-id="${item.id}">
+      <div class="card-cover">
+        <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.src='${FALLBACK_IMG}'"/>
+        <div class="card-gloss"></div>
+      </div>
+      <div class="card-body">
+        <div class="card-badge-row">
+          ${item.set ? `<span class="badge ${badgeClass(item.set)}">${item.set}</span>` : ''}
+          ${item.condition==='Sealed' ? `<span class="badge badge-sealed-tag">Sealed</span>` : ''}
+        </div>
+        <div class="card-name">${item.name}</div>
+        <div class="card-price-block">
+          ${hasBuy ? `
+          <div class="card-price-row">
+            <span class="card-price-label">Buy</span>
+            <span class="card-price-buy">${fmt(item.buyPrice)}</span>
+          </div>` : ''}
+          <span class="price-pill">${fmt(item.currentPrice)}${varTxt ? `<span class="${varCls} card-var-inline"><span class="var-arrow">${varArrow}</span>${varTxt}</span>` : ''}</span>
+        </div>
+        <div class="var-compact">${varHtml(v7)}<span class="var-compact-label">7d</span></div>
+      </div>
+    </div>`;
+  }
+
+  function buildListRow(item, rank) {
+    const v7 = varFromHistory(item.priceHistory, 7);
+    const varCls = !v7 ? 'neu' : v7.pct >= 0 ? 'pos' : 'neg';
+    const varTxt = !v7 ? '—' : (v7.pct >= 0 ? '+' : '') + v7.pct.toFixed(1) + '% 7d';
+    const url = item.cardmarketUrl || '#';
+    const lastSale = item.usSales && item.usSales.length ? item.usSales[item.usSales.length-1] : null;
+    const salesTxt = lastSale ? lastSale.platform + ' $' + lastSale.price : '';
+    const img = item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2236%22 height=%2236%22%3E%3Crect fill=%22%23111%22 width=%2236%22 height=%2236%22/%3E%3C/svg%3E';
+    return '<div class="list-row" data-id="' + item.id + '" draggable="false">'
+      + '<span class="list-rank">' + rank + '</span>'
+      + '<img class="list-img" src="' + img + '" alt="' + item.name + '" onerror="this.style.opacity=0.2"/>'
+      + '<div style="flex:1;min-width:0"><div class="list-name">' + item.name + '</div>'
+      + '<div class="list-set">' + (item.set||'unknown') + (item.condition==='Sealed'?' · Sealed':'') + '</div></div>'
+      + (salesTxt ? '<span class="list-sales">' + salesTxt + '</span>' : '')
+      + '<span class="list-price">' + fmt(item.currentPrice) + '</span>'
+      + '<span class="list-var ' + varCls + '">' + varTxt + '</span>'
+      + '<a class="list-buy" href="' + url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buy</a>'
+      + '</div>';
+  }
+
+  let activeWatchlist = (function () { try { return localStorage.getItem('cdx_active_watchlist') || 'General'; } catch(e) { return 'General'; } })();
+
+  function renderTabs() {
+    const names = (window.portfolioData && window.portfolioData.watchlists) || ['General'];
+    if (names.indexOf(activeWatchlist) === -1) activeWatchlist = names[0] || 'General';
+    const bar = document.getElementById('wl-tabs-bar');
+    const cards = (window.portfolioData && window.portfolioData.cards) || [];
+    bar.innerHTML = names.map(function(n) {
+      const count = cards.filter(function(c){ return c.status==='Watchlist' && (c.watchlistName||'General')===n; }).length;
+      return '<button class="wl-tab' + (n===activeWatchlist?' active':'') + '" data-name="' + n + '">' + n + ' <span style="opacity:0.6">(' + count + ')</span></button>';
+    }).join('') + '<button class="wl-tab-new" id="wl-tab-new">+ New Watchlist</button>';
+
+    bar.querySelectorAll('.wl-tab').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        activeWatchlist = btn.dataset.name;
+        try { localStorage.setItem('cdx_active_watchlist', activeWatchlist); } catch(e){}
+        render();
+      });
+    });
+    document.getElementById('wl-tab-new').addEventListener('click', function() {
+      if (window.CardexAuth && !window.CardexAuth.isUnlocked()) { window.CardexAuth.requirePassword(function(){ createNewWatchlist(); }); return; }
+      createNewWatchlist();
+    });
+  }
+
+  function createNewWatchlist() {
+    const name = window.prompt('Name for the new watchlist:');
+    if (!name || !name.trim()) return;
+    const clean = name.trim();
+    window.CardexAPI.insertWatchlist(clean).then(function() {
+      return window.CardexReload();
+    }).then(function() {
+      activeWatchlist = clean;
+      try { localStorage.setItem('cdx_active_watchlist', activeWatchlist); } catch(e){}
+      render();
+    }).catch(function(err) {
+      window.alert('Could not create the watchlist (maybe that name already exists): ' + err.message);
+    });
+  }
+
+  function render() {
+    if (!window.portfolioData || !window.portfolioData.cards) return;
+    const cards = window.portfolioData.cards;
+    renderTabs();
+    const wl = cards.filter(function(c){ return c.status === 'Watchlist' && (c.watchlistName||'General') === activeWatchlist; });
+
+    const upd = window.portfolioData.updatedAt;
+    if (upd) document.getElementById('updated-label').textContent =
+      'Updated ' + new Date(upd+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+    const main = document.getElementById('main-content');
+
+    if (!wl.length) {
+      main.innerHTML = '<div class="empty-state"><div class="empty-icon">👁</div><div class="empty-title">"' + activeWatchlist + '" is empty</div></div>';
+      return;
+    }
+
+    const groups = [
+      { id: 'singles', label: 'Singles', items: wl.filter(function(c){ return c.condition !== 'Sealed'; }) },
+      { id: 'sealed',  label: 'Sealed',  items: wl.filter(function(c){ return c.condition === 'Sealed'; }) }
+    ].filter(function(g){ return g.items.length > 0; });
+
+    const state = {};
+    groups.forEach(function(g){ state[g.id] = { sort: 'value', view: 'grid' }; });
+
+    function loadCustomOrder(gid) { try { return JSON.parse(localStorage.getItem('wl-custom-order-'+gid)||'null'); } catch(e){ return null; } }
+    function saveCustomOrder(gid, ids) { try { localStorage.setItem('wl-custom-order-'+gid, JSON.stringify(ids)); } catch(e){} }
+
+    function sortWL(items, mode, gid) {
+      if (mode === 'custom') {
+        var saved = loadCustomOrder(gid);
+        if (!saved) return items.slice().sort(function(a,b){ return a.currentPrice-b.currentPrice; });
+        var idx = {}; saved.forEach(function(id,i){ idx[id]=i; });
+        return items.slice().sort(function(a,b){ return (idx[a.id]!=null?idx[a.id]:999)-(idx[b.id]!=null?idx[b.id]:999); });
+      }
+      if (mode === 'gainers') {
+        return items.slice().sort(function(a,b) {
+          var pA = a.priceHistory && a.priceHistory.length>1 ? (a.priceHistory[a.priceHistory.length-1].price-a.priceHistory[0].price)/a.priceHistory[0].price : -Infinity;
+          var pB = b.priceHistory && b.priceHistory.length>1 ? (b.priceHistory[b.priceHistory.length-1].price-b.priceHistory[0].price)/b.priceHistory[0].price : -Infinity;
+          return pB-pA;
+        });
+      }
+      return items.slice().sort(function(a,b){ return a.currentPrice-b.currentPrice; });
+    }
+
+    function addDragGrid(grid, gid) {
+      var dragEl = null;
+      grid.querySelectorAll('.wl-card').forEach(function(card) {
+        card.setAttribute('draggable','true');
+        card.addEventListener('dragstart',function(e){ dragEl=card; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+        card.addEventListener('dragend',function(){ card.classList.remove('dragging'); grid.querySelectorAll('.wl-card').forEach(function(c){c.classList.remove('drag-over');}); saveCustomOrder(gid, Array.from(grid.querySelectorAll('.wl-card')).map(function(c){return c.dataset.id;})); });
+        card.addEventListener('dragover',function(e){ e.preventDefault(); if(!dragEl||dragEl===card)return; card.classList.add('drag-over'); var r=card.getBoundingClientRect(); e.clientX<r.left+r.width/2?grid.insertBefore(dragEl,card):grid.insertBefore(dragEl,card.nextSibling); });
+        card.addEventListener('dragleave',function(){ card.classList.remove('drag-over'); });
+        card.addEventListener('drop',function(e){ e.preventDefault(); card.classList.remove('drag-over'); });
+      });
+    }
+
+    function addDragList(container, gid) {
+      var dragEl = null;
+      container.querySelectorAll('.list-row').forEach(function(row) {
+        row.setAttribute('draggable','true');
+        row.addEventListener('dragstart',function(e){ dragEl=row; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+        row.addEventListener('dragend',function(){ row.classList.remove('dragging'); container.querySelectorAll('.list-row').forEach(function(r){r.classList.remove('drag-over');}); saveCustomOrder(gid, Array.from(container.querySelectorAll('.list-row')).map(function(r){return r.dataset.id;})); container.querySelectorAll('.list-rank').forEach(function(el,i){el.textContent=i+1;}); });
+        row.addEventListener('dragover',function(e){ e.preventDefault(); if(!dragEl||dragEl===row)return; row.classList.add('drag-over'); var r=row.getBoundingClientRect(); e.clientY<r.top+r.height/2?container.insertBefore(dragEl,row):container.insertBefore(dragEl,row.nextSibling); });
+        row.addEventListener('dragleave',function(){ row.classList.remove('drag-over'); });
+        row.addEventListener('drop',function(e){ e.preventDefault(); row.classList.remove('drag-over'); });
+      });
+    }
+
+    function renderGroup(g) {
+      var gid = g.id, sort = state[gid].sort, view = state[gid].view;
+      var sorted = sortWL(g.items, sort, gid);
+      var isDrag = sort === 'custom';
+      var hint = document.getElementById('drag-hint-'+gid);
+      if (hint) hint.classList.toggle('visible', isDrag);
+
+      if (view === 'list') {
+        var container = document.getElementById('wl-list-'+gid);
+        container.style.display = 'flex';
+        document.getElementById('wl-grid-'+gid).style.display = 'none';
+        container.innerHTML = sorted.map(function(item,i){ return buildListRow(item,i+1); }).join('');
+        container.classList.toggle('drag-mode', isDrag);
+        container.querySelectorAll('.list-row').forEach(function(el) {
+          el.addEventListener('click', function(){ if(el.classList.contains('dragging'))return; var item=cards.find(function(c){return c.id===el.dataset.id;}); if(item)openModal(item); });
+        });
+        if (isDrag) addDragList(container, gid);
+      } else {
+        var grid = document.getElementById('wl-grid-'+gid);
+        grid.style.display = 'grid';
+        document.getElementById('wl-list-'+gid).style.display = 'none';
+        grid.innerHTML = sorted.map(buildCard).join('');
+        grid.classList.toggle('drag-mode', isDrag);
+        grid.querySelectorAll('.wl-card').forEach(function(el) {
+          el.addEventListener('click', function(){ if(el.classList.contains('dragging'))return; var item=cards.find(function(c){return c.id===el.dataset.id;}); if(item)openModal(item); });
+        });
+        if (isDrag) addDragGrid(grid, gid);
+      }
+      initWLCardEffects();
+    }
+
+    main.innerHTML = groups.map(function(g, i) {
+      return '<div class="section-header' + (i>0 ? ' section-header-spaced' : '') + '">'
+        + '<h2>' + g.label + '</h2>'
+        + '<span class="section-count">' + g.items.length + ' items</span>'
+        + '<span class="drag-hint" id="drag-hint-' + g.id + '">✦ drag to reorder</span>'
+        + '<div class="filter-group">'
+        + '<button class="filter-btn" data-group="' + g.id + '" data-sort="gainers">% Gainers</button>'
+        + '<button class="filter-btn active" data-group="' + g.id + '" data-sort="value">Price ↑</button>'
+        + '<button class="filter-btn" data-group="' + g.id + '" data-sort="custom">Custom ⠿</button>'
+        + '<span style="width:1px;background:var(--border);height:20px;margin:0 4px"></span>'
+        + '<button class="view-btn active" data-group="' + g.id + '" data-view="grid" title="Grid view">⊞</button>'
+        + '<button class="view-btn" data-group="' + g.id + '" data-view="list" title="List view">≡</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="card-grid" id="wl-grid-' + g.id + '"></div>'
+        + '<div class="list-view" id="wl-list-' + g.id + '" style="display:none"></div>';
+    }).join('');
+
+    groups.forEach(renderGroup);
+
+    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var gid = btn.dataset.group;
+        document.querySelectorAll('.filter-btn[data-group="'+gid+'"]').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        state[gid].sort = btn.dataset.sort;
+        renderGroup(groups.find(function(g){ return g.id===gid; }));
+      });
+    });
+
+    document.querySelectorAll('.view-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var gid = btn.dataset.group;
+        document.querySelectorAll('.view-btn[data-group="'+gid+'"]').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        state[gid].view = btn.dataset.view;
+        renderGroup(groups.find(function(g){ return g.id===gid; }));
+      });
+    });
+  }
+
+  // ── FLOATING + PARALLAX + 3D TILT + GLOSS (watchlist cards, igual que portfolio) ──
+  let wlCardEffectsRaf = null;
+  function initWLCardEffects() {
+    if (wlCardEffectsRaf) { cancelAnimationFrame(wlCardEffectsRaf); wlCardEffectsRaf = null; }
+    const wlCards = Array.from(document.querySelectorAll('.wl-card'));
+    if (!wlCards.length) return;
+
+    wlCards.forEach(card => {
+      card._tiltX = 0; card._tiltY = 0; card._tgtX = 0; card._tgtY = 0;
+      card._hovered = false; card._glossX = 50; card._glossY = 50;
+      card.style.position = 'relative';
+
+      card.addEventListener('mouseenter', () => { card._hovered = true; });
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        card._tgtX = -((e.clientY - r.top  - r.height/2) / (r.height/2)) * 10.8;
+        card._tgtY =  ((e.clientX - r.left - r.width /2) / (r.width /2)) * 10.8;
+        card._glossX = ((e.clientX - r.left) / r.width)  * 100;
+        card._glossY = ((e.clientY - r.top)  / r.height) * 100;
+      });
+      card.addEventListener('mouseleave', () => {
+        card._hovered = false; card._tgtX = 0; card._tgtY = 0;
+        const g = card.querySelector('.card-gloss');
+        if (g) g.style.opacity = '0';
+      });
+    });
+
+    const scrollShifts = new Map();
+    function updateScrollShifts() {
+      wlCards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const vhC = window.innerHeight / 2;
+        const cardC = rect.top + rect.height / 2;
+        scrollShifts.set(card, ((cardC - vhC) / window.innerHeight) * 12);
+      });
+    }
+    window.addEventListener('scroll', updateScrollShifts, {passive:true});
+    updateScrollShifts();
+
+    function tick() {
+      wlCards.forEach(card => {
+        if (card.classList.contains('dragging')) return;
+        const scrollY = scrollShifts.get(card) || 0;
+        card._tiltX += (card._tgtX - card._tiltX) * 0.10;
+        card._tiltY += (card._tgtY - card._tiltY) * 0.10;
+
+        card.style.transform =
+          `translateY(${scrollY.toFixed(2)}px) ` +
+          `perspective(700px) ` +
+          `rotateX(${card._tiltX.toFixed(2)}deg) ` +
+          `rotateY(${card._tiltY.toFixed(2)}deg)`;
+
+        const glow = card._hovered ? ',0 0 32px 5px rgba(184,145,46,0.45),0 0 60px 10px rgba(184,145,46,0.13)' : '';
+        card.style.boxShadow =
+          `0 0 0 1px rgba(184,145,46,0.16),inset 0 1px 0 rgba(255,255,255,0.09),0 2px 0 rgba(0,0,0,0.95),0 8px 24px rgba(0,0,0,0.85),0 24px 60px rgba(0,0,0,0.9)${glow}`;
+
+        if (card._hovered) {
+          const g = card.querySelector('.card-gloss');
+          if (g) {
+            g.style.background = `radial-gradient(circle at ${card._glossX.toFixed(0)}% ${card._glossY.toFixed(0)}%,rgba(255,225,140,0.38) 0%,rgba(216,180,100,0.12) 40%,transparent 65%)`;
+            g.style.opacity = '1';
+          }
+        }
+      });
+      wlCardEffectsRaf = requestAnimationFrame(tick);
+    }
+    wlCardEffectsRaf = requestAnimationFrame(tick);
+  }
+
+  window.CardexOnDataChange = render;
+  window.__portfolioDataPromise.then(render);
+})();
+</script>
+</body>
+</html>
